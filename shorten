@@ -1,0 +1,96 @@
+#!/usr/bin/perl -w
+# 
+# shorten - recursively process files and shorten filename 
+# Copyright (C) 2003-2004 Russ Burdick, grub@extrapolation.net
+#
+# This program is free software; you can redistribute it and/or
+# modify it under the terms of the GNU General Public License
+# as published by the Free Software Foundation; either version 2
+# of the License, or (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program; if not, write to the Free Software
+# Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
+#
+
+# recursively process files and shorten them. long filenames dont work 
+# great on my archos jukebox portable player (it sometimes does not sort 
+# them correctly, and otherwise it just is too slow scrolling), so this 
+# shortens the filename to ##-song.name.mp3 format (since it's already 
+# residing in an artist.name/album.name subdirectory). also would work 
+# well as a template for a recursive file/directory processor.
+
+use strict;
+use warnings;
+use Cwd;
+
+# args in @ARGV, num args (without command) in $#ARGV
+
+sub process_dir($);
+sub process_file($);
+
+my $f;
+my $path;
+foreach $f (@ARGV) {
+
+   if (-f $f) {
+      process_file $f;
+   } elsif (-d $f) {
+      $path = cwd();
+      $path = $path . "/" . $f;
+      process_dir $path;
+   }
+
+}
+
+sub process_dir($) {
+
+   my $sdir = cwd();
+   my $g = shift;
+   my $path;
+   chdir $g;
+   opendir THEDIR, "." or die "cant open dir: $!\n";
+   my @dir = readdir THEDIR;
+   closedir THEDIR;
+
+   foreach $f (@dir) {
+
+      if (-f $f) {
+         process_file $f;
+      } elsif (-d $f) {
+         $path = cwd();
+         $path = $path . "/" . $f;
+         if ($f !~ m/^\./) {
+            print "directory: " . $path . "\n";
+            process_dir $path;
+         }
+      }
+   }
+   chdir $sdir;
+   return;
+}
+
+sub process_file($) {
+
+   my $src = shift;
+   my $dname;
+
+   if ($src =~ m/^([0-9a-z.-]+)-(\d\d-[0-9a-z.-]+\.mp3)/i) {
+      $dname = $2;
+      my $cmd = "mv '$src' '$dname'";
+
+      system($cmd);
+   } elsif ($src =~ m/^([0-9a-z.-]+)-([0-9a-z.-]+\.mp3)/i) {
+      $dname = $2;
+      my $cmd = "mv '$src' '$dname'";
+
+      system($cmd);
+   }
+
+   return;
+}
